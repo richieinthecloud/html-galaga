@@ -1,0 +1,14 @@
+# Keep the build context small and the image clean. Everything listed here is either irrelevant to the running container or actively shouldn't be in it.
+
+.git
+.github
+.gitignore
+.dockerignore
+README.md
+LICENSE
+
+# Editor and OS cruft
+.vscode/
+.idea/
+.DS_Store
+*.swp
