@@ -1,0 +1,9 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Nothing in this repo is built locally -- the image is built in CI and the game is plain static files. 
+# If you later add a bundler, its output dir belongs here.
