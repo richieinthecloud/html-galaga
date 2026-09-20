@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaga on AKS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-wrapper">
+        <header id="hud">
+            <span>SCORE: <span id="score">0</span></span>
+            <span>HIGH: <span id="highscore">0</span></span>
+            <span>LIVES: <span id="lives">3</span></span>
+        </header>
+
+        <canvas id="game" width="480" height="640"></canvas>
+
+        <div id="overlay" class="hidden">
+            <h1 id="overlay-title">GALAGA</h1>
+            <p id="overlay-text">Press ENTER or TAP to start</p>
+            <p class="controls">
+                Move: &larr; &rarr; or A / D &nbsp;&middot;&nbsp; Fire: SPACE
+            </p>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
