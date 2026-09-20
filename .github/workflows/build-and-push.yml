@@ -3,7 +3,7 @@
 # This workflow is the entire seam between this repo and the GitOps repo.
 # It ends by printing the image tag; deploying that tag is a separate,
 # deliberate human action over in richieinthecloud/homelab. Nothing here
-# touches the cluster, and nothing here knows the cluster exists.
+# touches the cluster, and nothing here knows the cluster exists!
 #
 # That separation is the point. A pipeline that builds AND deploys means a
 # bad build reaches production automatically. A pipeline that only builds
