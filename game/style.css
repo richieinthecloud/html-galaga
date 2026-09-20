@@ -1,0 +1,78 @@
+/* --- Global reset & page background ---*/
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    background: #05060f;
+    color: #e6e6e6;
+    font-family: "Courier New", Courier, monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* --- game container --- */
+#game-wrapper {
+    position: relative;
+    width: 480px;
+    max-width: 100vw;
+}
+
+/* --- heads-up display (score/lives) --- */
+#hud {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: #7fdfff;
+    text-shadow: 0 0 6px #1e6fff;
+}
+
+/* --- the canvas for the game --- */
+#game {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #05060f;
+    border: 2px solid #1e6fff;
+    box-shadow: 0 0 24px rgba(30, 111, 255, 0.4);
+    image-rendering: pixelated;
+    /* keeps pixel art crisp when scaled */
+}
+
+/* --- start / game over overlay --- */
+#overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgba(5, 6, 15, 0.85);
+    gap: 16px;
+}
+
+#overlay.hidden {
+    display: none;
+}
+
+#overlay h1 {
+    font-size: 48px;
+    letter-spacing: 6px;
+    color: #ffd23f;
+    text-shadow: 0 0 12px #ff8c00;
+}
+
+#overlay .controls {
+    font-size: 12px;
+    color: #9aa;
+    margin-top: 8px;
+}
