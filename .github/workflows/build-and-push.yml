@@ -74,6 +74,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: latest=false # make sure we don't use 'latest' as tag
           tags: |
             # Exact version from the git tag: v1.0.0 -> image tag v1.0.0.
             # This is the one you pin in the GitOps repo.
