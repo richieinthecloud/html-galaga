@@ -1,0 +1,126 @@
+# Builds the container image and publishes it to GitHub Container Registry.
+#
+# This workflow is the entire seam between this repo and the GitOps repo.
+# It ends by printing the image tag; deploying that tag is a separate,
+# deliberate human action over in richieinthecloud/homelab. Nothing here
+# touches the cluster, and nothing here knows the cluster exists.
+#
+# That separation is the point. A pipeline that builds AND deploys means a
+# bad build reaches production automatically. A pipeline that only builds
+# means you choose when to promote.
+
+name: build and publish image
+
+on:
+  # Publishing is driven by git tags. `git tag v1.0.0 && git push origin v1.0.0`
+  # is what mints a new image -- a merge to main does not.
+  push:
+    tags:
+      - 'v*'
+  # On PRs, build the image to prove the Dockerfile still works, but don't push.
+  pull_request:
+    branches:
+      - main
+  # Manual trigger from the Actions tab, for when you need a rebuild without a
+  # new tag (a base image security patch, say).
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  # github.repository is "richieinthecloud/galaga", so the published image is
+  # ghcr.io/richieinthecloud/galaga -- which is exactly what the Deployment in
+  # the GitOps repo references. Renaming this repo renames the image, and the
+  # GitOps repo will not notice until a sync fails.
+  #
+  # (GHCR requires a lowercase path. Your username already is, so this is safe;
+  # an owner with capitals would need an explicit lowercase string here.)
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Least privilege, set explicitly rather than inherited. The job needs to
+      # read this repo and write packages -- nothing else.
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        # Buildx gives us layer caching and multi-platform builds. Worth having
+        # even for a single-arch build, purely for the cache.
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        # Skipped on pull requests: a PR build never pushes, so it needs no
+        # credentials. This also means the workflow is safe to run on PRs from
+        # forks, which cannot access secrets.
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          # No secret to create or rotate. GitHub mints this token per-run and
+          # expires it when the job ends. This is the main reason to prefer
+          # GHCR over Docker Hub for a project like this.
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive image tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Exact version from the git tag: v1.0.0 -> image tag v1.0.0.
+            # This is the one you pin in the GitOps repo.
+            type=semver,pattern=v{{version}}
+            # The full commit SHA, always published. Immutable, and the
+            # fallback when you need to know precisely what shipped.
+            type=sha,format=long
+          # Deliberately NOT publishing moving tags like `latest` or a
+          # major-only `v1`. A moving tag means the GitOps repo no longer
+          # describes what's running: ArgoCD would show Synced while the
+          # actual image drifted underneath it. Every tag this produces
+          # points at exactly one build, forever.
+          labels: |
+            org.opencontainers.image.title=galaga
+            org.opencontainers.image.description=Containerized Galaga clone, served by nginx
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # Both homelab nodes are x86-64 (Dell Latitude 7430, 2013 MacBook
+          # Pro), so a single-arch build is all that's needed and it keeps
+          # build times short. If you ever add a Raspberry Pi, change this to
+          # `linux/amd64,linux/arm64` -- buildx handles the rest.
+          platforms: linux/amd64
+          # PR builds verify the Dockerfile compiles; only tags get published.
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Layer cache in GitHub's own storage. Turns a rebuild that changed
+          # only game/ into a few seconds instead of a full base image pull.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summarize what was published
+        if: github.event_name != 'pull_request'
+        # Writes to the workflow run summary page so the exact tag to pin is
+        # one click away, rather than buried in build log output.
+        run: |
+          {
+            echo "## Image published"
+            echo ""
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo ""
+            echo "To deploy: update \`images[0].newTag\` in"
+            echo "\`apps/galaga/kustomization.yaml\` in richieinthecloud/homelab,"
+            echo "commit, then Sync the galaga Application in ArgoCD."
+          } >> "$GITHUB_STEP_SUMMARY"
